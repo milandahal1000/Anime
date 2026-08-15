@@ -1,4 +1,5 @@
 from django.db.models import Count
+from django.shortcuts import get_object_or_404
 from rest_framework import filters, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -22,11 +23,17 @@ class AnimeViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['-release_year', 'title']
 
     def get_queryset(self):
-        queryset = self.queryset.annotate(episode_count=Count('episodes'))
+        queryset = self.queryset.annotate(episode_count=Count('episodes')).prefetch_related('genres')
         genre = self.request.query_params.get('genre')
         if genre:
             queryset = queryset.filter(genres__slug=genre)
         return queryset
+
+    def get_object(self):
+        queryset = self.get_queryset().prefetch_related('genres', 'episodes')
+        obj = get_object_or_404(queryset, pk=self.kwargs['pk'])
+        self.check_object_permissions(self.request, obj)
+        return obj
 
     def get_serializer_class(self):
         if self.action == 'retrieve':

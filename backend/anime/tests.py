@@ -142,6 +142,20 @@ class AuthApiTests(BaseApiTest):
         )
         self.assertEqual(response.status_code, 400)
 
+    def test_register_duplicate_email(self):
+        User.objects.create_user(username='first', password='testpass123', email='dup@example.com')
+        response = self.client.post(
+            '/api/auth/register/',
+            {
+                'username': 'second',
+                'email': 'dup@example.com',
+                'password': 'strongpass1',
+                'password2': 'strongpass1',
+            },
+            format='json',
+        )
+        self.assertEqual(response.status_code, 400)
+
     def test_login_returns_tokens(self):
         User.objects.create_user(username='viewer', password='testpass123')
         response = self.client.post(

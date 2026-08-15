@@ -1,15 +1,19 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { authApi, contentApi } from '../services/api'
+import { useFavorites } from '../hooks/useFavorites'
+import { usePageMeta } from '../hooks/usePageMeta'
+import { contentApi } from '../services/api'
 
 export default function AnimeDetail() {
   const { id } = useParams()
   const { isAuthenticated } = useAuth()
+  const { isFavorite, toggle } = useFavorites()
   const [anime, setAnime] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isFavorite, setIsFavorite] = useState(false)
   const [error, setError] = useState(null)
+
+  usePageMeta(anime?.title || 'Anime details', anime?.synopsis?.slice(0, 155))
 
   useEffect(() => {
     setIsLoading(true)
@@ -19,28 +23,6 @@ export default function AnimeDetail() {
       .catch(() => setError('Anime not found.'))
       .finally(() => setIsLoading(false))
   }, [id])
-
-  useEffect(() => {
-    if (!isAuthenticated) return
-    authApi
-      .favorites()
-      .list()
-      .then(({ data }) => setIsFavorite(data.some((a) => a.id === Number(id))))
-      .catch(() => {})
-  }, [id, isAuthenticated])
-
-  const toggleFavorite = useCallback(async () => {
-    try {
-      if (isFavorite) {
-        await authApi.favorites().remove(id)
-      } else {
-        await authApi.favorites().add(id)
-      }
-      setIsFavorite((prev) => !prev)
-    } catch {
-      // ignore; optimistic toggle stays on current value
-    }
-  }, [id, isFavorite])
 
   if (isLoading) {
     return (
@@ -62,16 +44,18 @@ export default function AnimeDetail() {
     return <div className="empty">{error}</div>
   }
 
+  const favorite = isFavorite(anime.id)
+
   return (
     <div className="page">
       <div className="detail-layout">
         <div>
           <div className="detail-cover">
-            <img src={anime.cover_image} alt={anime.title} />
+            <img src={anime.cover_image} alt={anime.title} decoding="async" />
           </div>
           {isAuthenticated && (
-            <button type="button" className="btn btn-block" style={{ marginTop: 12 }} onClick={toggleFavorite}>
-              {isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            <button type="button" className="btn btn-block" style={{ marginTop: 12 }} onClick={() => toggle(anime.id)}>
+              {favorite ? 'Remove from favorites' : 'Add to favorites'}
             </button>
           )}
         </div>

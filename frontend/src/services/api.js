@@ -1,8 +1,9 @@
 import axios from 'axios'
 
-const api = axios.create({ baseURL: '/api' })
+const api = axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL || '/api' })
 
 let refreshPromise = null
+let genresPromise = null
 
 api.interceptors.request.use((config) => {
   const access = localStorage.getItem('access')
@@ -17,7 +18,7 @@ const refreshAccess = async () => {
   if (!refresh) {
     throw new Error('No refresh token available')
   }
-  const { data } = await axios.post('/api/auth/refresh/', { refresh })
+  const { data } = await axios.post(`${api.defaults.baseURL}/auth/refresh/`, { refresh })
   localStorage.setItem('access', data.access)
   return data.access
 }
@@ -71,7 +72,10 @@ export const contentApi = {
   animeDetail: (id) => api.get(`/anime/${id}/`),
   animeEpisodes: (id, params) => api.get(`/anime/${id}/episodes/`, { params }),
   episode: (id) => api.get(`/episodes/${id}/`),
-  genres: () => api.get('/genres/'),
+  genres: () => {
+    genresPromise ??= api.get('/genres/')
+    return genresPromise
+  },
 }
 
 export default api

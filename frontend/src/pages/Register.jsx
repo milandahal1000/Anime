@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { usePageMeta } from '../hooks/usePageMeta'
 
 export default function Register() {
+  usePageMeta('Create account', 'Create your free AnimeStream account to save favorites and continue watching.')
   const { register, isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const [username, setUsername] = useState('')

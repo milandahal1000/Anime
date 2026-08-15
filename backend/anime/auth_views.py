@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.db.models import Count
 from django.http import Http404
 from rest_framework import permissions, status
 from rest_framework.response import Response
@@ -12,6 +13,10 @@ from .serializers import (
     UserSerializer,
     WatchHistorySerializer,
 )
+
+
+def _favorite_anime_queryset(profile):
+    return profile.favorites.annotate(episode_count=Count('episodes')).prefetch_related('genres')
 
 
 class RegisterView(APIView):
@@ -57,7 +62,7 @@ class MeView(APIView):
                     'id': profile.id,
                     'avatar': profile.avatar,
                     'bio': profile.bio,
-                    'favorites': AnimeListSerializer(profile.favorites.all(), many=True).data,
+                    'favorites': AnimeListSerializer(_favorite_anime_queryset(profile), many=True).data,
                 },
             }
         )
@@ -68,7 +73,7 @@ class FavoritesView(APIView):
 
     def get(self, request):
         profile = request.user.profile
-        serializer = AnimeListSerializer(profile.favorites.all(), many=True)
+        serializer = AnimeListSerializer(_favorite_anime_queryset(profile), many=True)
         return Response(serializer.data)
 
     def post(self, request):

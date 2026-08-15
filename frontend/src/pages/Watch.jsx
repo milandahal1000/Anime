@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import VideoPlayer from '../components/VideoPlayer'
 import { useAuth } from '../hooks/useAuth'
+import { usePageMeta } from '../hooks/usePageMeta'
 import { authApi, contentApi } from '../services/api'
 
 export default function Watch() {
@@ -15,6 +16,11 @@ export default function Watch() {
   const [resumeSeconds, setResumeSeconds] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  usePageMeta(
+    episode ? `EP ${episode.number} - ${episode.anime_title}` : 'Watch',
+    episode ? `Watching ${episode.anime_title} episode ${episode.number} on AnimeStream.` : '',
+  )
 
   useEffect(() => {
     setIsLoading(true)

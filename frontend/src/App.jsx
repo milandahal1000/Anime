@@ -1,14 +1,17 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthProvider'
-import AnimeDetail from './pages/AnimeDetail'
-import Browse from './pages/Browse'
-import Home from './pages/Home'
-import Login from './pages/Login'
-import Profile from './pages/Profile'
-import Register from './pages/Register'
-import Watch from './pages/Watch'
+import { FavoritesProvider } from './context/FavoritesProvider'
+
+const AnimeDetail = lazy(() => import('./pages/AnimeDetail'))
+const Browse = lazy(() => import('./pages/Browse'))
+const Home = lazy(() => import('./pages/Home'))
+const Login = lazy(() => import('./pages/Login'))
+const Profile = lazy(() => import('./pages/Profile'))
+const Register = lazy(() => import('./pages/Register'))
+const Watch = lazy(() => import('./pages/Watch'))
 
 function NotFound() {
   return (
@@ -22,22 +25,26 @@ function NotFound() {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/browse" element={<Browse />} />
-            <Route path="/anime/:id" element={<AnimeDetail />} />
-            <Route path="/watch/:animeId/:episodeId" element={<Watch />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route element={<ProtectedRoute />}>
-              <Route path="/profile" element={<Profile />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      <FavoritesProvider>
+        <BrowserRouter>
+          <Suspense fallback={<div className="loader">Loading&hellip;</div>}>
+            <Routes>
+              <Route element={<Layout />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/browse" element={<Browse />} />
+                <Route path="/anime/:id" element={<AnimeDetail />} />
+                <Route path="/watch/:animeId/:episodeId" element={<Watch />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/profile" element={<Profile />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Route>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </FavoritesProvider>
     </AuthProvider>
   )
 }

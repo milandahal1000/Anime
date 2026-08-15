@@ -4,8 +4,10 @@ import AnimeCard from '../components/AnimeCard'
 import { authApi, contentApi } from '../services/api'
 import { useAuth } from '../hooks/useAuth'
 import { useAnime } from '../hooks/useAnime'
+import { usePageMeta } from '../hooks/usePageMeta'
 
 export default function Home() {
+  usePageMeta('')
   const { isAuthenticated } = useAuth()
   const { data, isLoading } = useAnime({ ordering: '-release_year' })
   const [history, setHistory] = useState([])
@@ -43,8 +45,7 @@ export default function Home() {
           style={{
             backgroundImage: `linear-gradient(90deg, rgba(11,13,18,0.92) 0%, rgba(11,13,18,0.7) 55%, rgba(11,13,18,0.35) 100%), url(${featured.cover_image})`,
           }}
-        >
-          <div className="hero-banner-body">
+        >          <div className="hero-banner-body">
             <span className="badge badge-accent">Featured</span>
             <h1>{featured.title}</h1>
             <p>{featured.synopsis}</p>
@@ -79,7 +80,7 @@ export default function Home() {
               return (
                 <Link key={entry.id} to={target} className="card">
                   <div className="card-cover">
-                    <img src={entry.anime.cover_image} alt={entry.anime.title} loading="lazy" />
+                    <img src={entry.anime.cover_image} alt={entry.anime.title} loading="lazy" decoding="async" />
                   </div>
                   <div className="card-body">
                     <div className="card-title">{entry.anime.title}</div>

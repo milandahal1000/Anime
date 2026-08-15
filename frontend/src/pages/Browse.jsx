@@ -3,8 +3,10 @@ import { useSearchParams } from 'react-router-dom'
 import AnimeCard from '../components/AnimeCard'
 import { contentApi } from '../services/api'
 import { useAnime } from '../hooks/useAnime'
+import { usePageMeta } from '../hooks/usePageMeta'
 
 export default function Browse() {
+  usePageMeta('Browse Anime', 'Search and filter the anime catalog by title, genre, year and more.')
   const [searchParams, setSearchParams] = useSearchParams()
   const [genres, setGenres] = useState([])
 
