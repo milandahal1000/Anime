@@ -71,7 +71,8 @@ export default function Home() {
           <h2 className="section-title">Continue watching</h2>
           <div className="grid">
             {inProgress.map((entry) => {
-              const pct = Math.min(100, Math.round((entry.progress_seconds / 1440) * 100))
+              const duration = entry.episode?.duration || 1440
+              const pct = Math.min(100, Math.round((entry.progress_seconds / duration) * 100))
               const target = entry.episode
                 ? `/watch/${entry.anime.id}/${entry.episode.id}`
                 : `/anime/${entry.anime.id}`

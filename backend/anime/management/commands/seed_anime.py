@@ -13,6 +13,7 @@ JIKAN_TOP_URL = f'{JIKAN_API}/top/anime?limit={{limit}}&page={{page}}'
 FETCH_CHUNK = 3
 DEFAULT_EPISODES = 12
 DEFAULT_DURATION = 1440
+HLS_TEST_STREAM = 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
 
 FALLBACK_ANIME = [
     {
@@ -140,13 +141,13 @@ def _create_anime(self, item):
         anime.genres.set(Genre.objects.filter(name__in=genre_names))
 
     for number in range(1, item['episodes'] + 1):
-        Episode.objects.get_or_create(
+        Episode.objects.update_or_create(
             anime=anime,
             number=number,
             defaults={
                 'title': f'Episode {number}',
                 'thumbnail': f'https://picsum.photos/seed/{slugify(title)}-ep{number}/320/180',
-                'video_url': f'https://storage.example.com/{slugify(title)}/ep{number}.mp4',
+                'video_url': HLS_TEST_STREAM,
                 'duration': DEFAULT_DURATION,
             },
         )

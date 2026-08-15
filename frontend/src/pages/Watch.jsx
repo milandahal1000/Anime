@@ -1,42 +1,72 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import VideoPlayer from '../components/VideoPlayer'
 import { useAuth } from '../hooks/useAuth'
 import { authApi, contentApi } from '../services/api'
 
 export default function Watch() {
   const { animeId, episodeId } = useParams()
   const { isAuthenticated } = useAuth()
+  const episodeRef = useRef(null)
+  const lastReportedRef = useRef(0)
   const videoRef = useRef(null)
   const [episode, setEpisode] = useState(null)
   const [episodes, setEpisodes] = useState([])
+  const [resumeSeconds, setResumeSeconds] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
 
   useEffect(() => {
     setIsLoading(true)
-    Promise.all([contentApi.episode(episodeId), contentApi.animeEpisodes(animeId)])
-      .then(([ep, list]) => {
+    setResumeSeconds(0)
+    Promise.all([
+      contentApi.episode(episodeId),
+      contentApi.animeEpisodes(animeId),
+      isAuthenticated ? authApi.watchHistory().list() : Promise.resolve(null),
+    ])
+      .then(([ep, list, history]) => {
         setEpisode(ep.data)
+        episodeRef.current = ep.data
         setEpisodes(list.data.results)
+        const entry = history?.data?.find((h) => h.anime.id === Number(animeId))
+        if (entry && !entry.is_completed && entry.episode?.id === Number(episodeId)) {
+          setResumeSeconds(entry.progress_seconds)
+        }
       })
       .catch(() => setError('Episode not found.'))
       .finally(() => setIsLoading(false))
-  }, [animeId, episodeId])
+  }, [animeId, episodeId, isAuthenticated])
 
   const reportProgress = (completed = false) => {
-    if (!isAuthenticated || !episode) return
+    if (!isAuthenticated || !episodeRef.current) return
     const video = videoRef.current
     if (!video) return
-    const progress = Math.floor(video.currentTime)
+    const progress = Math.floor(video.currentTime || 0)
+    if (!completed && progress === lastReportedRef.current) return
+    lastReportedRef.current = progress
     authApi.watchHistory()
       .upsert({
-        anime_id: episode.anime,
-        episode_id: episode.id,
+        anime_id: episodeRef.current.anime,
+        episode_id: episodeRef.current.id,
         progress_seconds: progress,
         is_completed: completed,
       })
       .catch(() => {})
   }
+
+  useEffect(() => {
+    const onHidden = () => {
+      if (document.visibilityState === 'hidden') reportProgress()
+    }
+    document.addEventListener('visibilitychange', onHidden)
+    window.addEventListener('beforeunload', reportProgress)
+    return () => {
+      document.removeEventListener('visibilitychange', onHidden)
+      window.removeEventListener('beforeunload', reportProgress)
+      reportProgress()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated])
 
   const index = episodes.findIndex((ep) => ep.id === Number(episodeId))
   const prev = index > 0 ? episodes[index - 1] : null
@@ -52,14 +82,17 @@ export default function Watch() {
   return (
     <div className="page">
       <div className="player-wrap">
-        <video
-          ref={videoRef}
-          controls
-          autoPlay
+        <VideoPlayer
+          key={episode.id}
+          videoRef={videoRef}
           src={episode.video_url}
           poster={episode.thumbnail}
+          autoPlay
+          startSeconds={resumeSeconds}
           onTimeUpdate={() => {
-            if (Math.floor(videoRef.current.currentTime) % 5 === 0) reportProgress()
+            const video = videoRef.current
+            const t = Math.floor(video?.currentTime || 0)
+            if (t >= lastReportedRef.current + 5) reportProgress()
           }}
           onPause={() => reportProgress()}
           onEnded={() => reportProgress(true)}
@@ -74,7 +107,7 @@ export default function Watch() {
         ) : (
           <span />
         )}
-        <h1 style={{ textAlign: 'center', margin: 0 }}>
+        <h1>
           {episode.anime_title} &mdash; EP {episode.number}
         </h1>
         {next ? (

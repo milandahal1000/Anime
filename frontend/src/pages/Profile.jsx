@@ -52,7 +52,8 @@ export default function Profile() {
       <h2 className="section-title">Continue watching ({history.length})</h2>
       {history.length ? (
         history.map((entry) => {
-          const pct = Math.min(100, Math.round((entry.progress_seconds / 1440) * 100))
+          const duration = entry.episode?.duration || 1440
+          const pct = Math.min(100, Math.round((entry.progress_seconds / duration) * 100))
           const targetEpisode = entry.episode
             ? `/watch/${entry.anime.id}/${entry.episode.id}`
             : `/anime/${entry.anime.id}`
