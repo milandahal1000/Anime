@@ -79,9 +79,23 @@ export default function Browse() {
       </div>
 
       {isLoading ? (
-        <div className="loader">Loading&hellip;</div>
+        <div className="grid">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="card">
+              <div className="card-cover skeleton" />
+              <div className="card-body">
+                <div className="skeleton" style={{ height: 14, marginBottom: 8 }} />
+                <div className="skeleton" style={{ height: 12, width: '60%' }} />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : data?.results?.length ? (
         <>
+          <p className="muted" style={{ marginBottom: 12 }}>
+            {data.count} result{data.count === 1 ? '' : 's'}
+            {search ? ` for "${search}"` : ''}
+          </p>
           <div className="grid">
             {data.results.map((anime) => (
               <AnimeCard key={anime.id} anime={anime} />

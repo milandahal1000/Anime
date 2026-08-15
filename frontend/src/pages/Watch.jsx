@@ -23,12 +23,11 @@ export default function Watch() {
       .finally(() => setIsLoading(false))
   }, [animeId, episodeId])
 
-  const reportProgress = () => {
+  const reportProgress = (completed = false) => {
     if (!isAuthenticated || !episode) return
     const video = videoRef.current
     if (!video) return
     const progress = Math.floor(video.currentTime)
-    const completed = video.ended || (video.duration > 0 && progress >= video.duration - 5)
     authApi.watchHistory()
       .upsert({
         anime_id: episode.anime,
@@ -38,6 +37,10 @@ export default function Watch() {
       })
       .catch(() => {})
   }
+
+  const index = episodes.findIndex((ep) => ep.id === Number(episodeId))
+  const prev = index > 0 ? episodes[index - 1] : null
+  const next = index >= 0 && index < episodes.length - 1 ? episodes[index + 1] : null
 
   if (isLoading) {
     return <div className="loader">Loading&hellip;</div>
@@ -58,20 +61,42 @@ export default function Watch() {
           onTimeUpdate={() => {
             if (Math.floor(videoRef.current.currentTime) % 5 === 0) reportProgress()
           }}
-          onEnded={reportProgress}
+          onPause={() => reportProgress()}
+          onEnded={() => reportProgress(true)}
         />
       </div>
-      <h1>
-        {episode.anime_title} &mdash; EP {episode.number}
-      </h1>
-      <p className="muted" style={{ marginTop: 4 }}>
+
+      <div className="player-actions">
+        {prev ? (
+          <Link to={`/watch/${animeId}/${prev.id}`} className="btn">
+            &larr; EP {prev.number}
+          </Link>
+        ) : (
+          <span />
+        )}
+        <h1 style={{ textAlign: 'center', margin: 0 }}>
+          {episode.anime_title} &mdash; EP {episode.number}
+        </h1>
+        {next ? (
+          <Link to={`/watch/${animeId}/${next.id}`} className="btn btn-primary">
+            EP {next.number} &rarr;
+          </Link>
+        ) : (
+          <span />
+        )}
+      </div>
+      <p className="muted" style={{ textAlign: 'center', marginTop: 4 }}>
         {episode.title}
       </p>
 
       <h2 className="section-title">Episodes</h2>
       <div className="episode-list">
         {episodes.map((ep) => (
-          <Link key={ep.id} to={`/watch/${animeId}/${ep.id}`} className="episode-item">
+          <Link
+            key={ep.id}
+            to={`/watch/${animeId}/${ep.id}`}
+            className={`episode-item ${ep.id === episode.id ? 'current' : ''}`}
+          >
             <div className="episode-num">EP {ep.number}</div>
             <div className="episode-title">{ep.title}</div>
           </Link>

@@ -43,7 +43,20 @@ export default function AnimeDetail() {
   }, [id, isFavorite])
 
   if (isLoading) {
-    return <div className="loader">Loading&hellip;</div>
+    return (
+      <div className="page">
+        <div className="detail-layout">
+          <div className="detail-cover skeleton" />
+          <div>
+            <div className="skeleton" style={{ height: 32, width: '70%', marginBottom: 16 }} />
+            <div className="skeleton" style={{ height: 16, width: '40%', marginBottom: 24 }} />
+            <div className="skeleton" style={{ height: 14, width: '100%', marginBottom: 8 }} />
+            <div className="skeleton" style={{ height: 14, width: '90%', marginBottom: 8 }} />
+            <div className="skeleton" style={{ height: 14, width: '60%' }} />
+          </div>
+        </div>
+      </div>
+    )
   }
   if (error || !anime) {
     return <div className="empty">{error}</div>
