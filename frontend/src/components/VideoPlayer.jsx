@@ -11,14 +11,17 @@ export default function VideoPlayer({
   onTimeUpdate,
   onPause,
   onEnded,
+  onFatalError,
 }) {
   const seekedRef = useRef(false)
+  const retriedManifestRef = useRef(false)
 
   useEffect(() => {
     const video = videoRef.current
     if (!video || !src) return
 
     seekedRef.current = false
+    retriedManifestRef.current = false
     video.removeAttribute('src')
     video.load()
     video.poster = poster || ''
@@ -79,7 +82,14 @@ export default function VideoPlayer({
         hls.on(Hls.Events.ERROR, (_, data) => {
           if (data.fatal) {
             const levelRetry = data.type === Hls.ErrorTypes.NETWORK_ERROR && data.context?.levelRetry
-            if (!levelRetry) hls?.startLoad()
+            if (!levelRetry && data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+              if (data.context?.url && data.context.url.endsWith('.m3u8') && !retriedManifestRef.current) {
+                retriedManifestRef.current = true
+                onFatalError?.()
+                return
+              }
+              hls?.startLoad()
+            }
           }
         })
       })

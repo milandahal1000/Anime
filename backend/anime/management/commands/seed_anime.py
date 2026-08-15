@@ -15,6 +15,12 @@ DEFAULT_EPISODES = 12
 DEFAULT_DURATION = 1440
 HLS_TEST_STREAM = 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
 
+CONSUMET_BASES = [
+    'https://api-aniwatch.onrender.com',
+    'https://aniwatch-api.vercel.app',
+    'https://hianime-api-phi.vercel.app',
+]
+
 FALLBACK_ANIME = [
     {
         'title': 'Steel Horizon',
@@ -117,6 +123,32 @@ def _fetch_top_anime(limit):
     return items
 
 
+def _fetch_consumet_top(limit):
+    last_error = None
+    for base in CONSUMET_BASES:
+        try:
+            url = f'{base}/api/v2/hianime/top-airing?page=1'
+            payload = _fetch_json(url, retries=1)
+            entries = payload.get('data', {}).get('topAiringAnimes', [])
+            items = []
+            for entry in entries[:limit]:
+                items.append({
+                    'title': entry.get('name') or entry.get('jname') or 'Unknown',
+                    'synopsis': '',
+                    'genres': [],
+                    'studio': '',
+                    'release_year': None,
+                    'episodes': max(1, min(entry.get('episodes') or DEFAULT_EPISODES, DEFAULT_EPISODES)),
+                    'cover_image': entry.get('poster', ''),
+                })
+            if items:
+                return items, base
+        except (RuntimeError, ValueError, KeyError) as exc:
+            last_error = exc
+            continue
+    raise RuntimeError(f'No Consumet instance reachable: {last_error}')
+
+
 def _cover_image(title):
     return f'https://picsum.photos/seed/{slugify(title)}/400/560'
 
@@ -155,11 +187,12 @@ def _create_anime(self, item):
 
 
 class Command(BaseCommand):
-    help = 'Seed the database with real anime from Jikan (MyAnimeList) with built-in fallback.'
+    help = 'Seed the database with real anime from Jikan (MyAnimeList) or Consumet (HiAnime) with built-in fallback.'
 
     def add_arguments(self, parser):
-        parser.add_argument('--limit', type=int, default=20, help='Number of anime to fetch from Jikan.')
+        parser.add_argument('--limit', type=int, default=20, help='Number of anime to fetch.')
         parser.add_argument('--flush', action='store_true', help='Delete all existing anime/episodes/genres first.')
+        parser.add_argument('--consumet', action='store_true', help='Fetch from a Consumet/HiAnime instance instead of Jikan.')
 
     def handle(self, *args, **options):
         if options['flush']:
@@ -168,13 +201,22 @@ class Command(BaseCommand):
             Genre.objects.all().delete()
             self.stdout.write('Flushed existing anime data.')
 
-        try:
-            items = _fetch_top_anime(options['limit'])
-            source = 'Jikan (api.jikan.moe)'
-        except RuntimeError as exc:
-            self.stderr.write(f'Jikan unreachable ({exc}). Using built-in fallback data.')
-            items = FALLBACK_ANIME
-            source = 'built-in fallback'
+        if options['consumet']:
+            try:
+                items, base = _fetch_consumet_top(options['limit'])
+                source = f'Consumet (HiAnime) via {base}'
+            except RuntimeError as exc:
+                self.stderr.write(f'Consumet unreachable ({exc}). Using built-in fallback data.')
+                items = FALLBACK_ANIME
+                source = 'built-in fallback'
+        else:
+            try:
+                items = _fetch_top_anime(options['limit'])
+                source = 'Jikan (api.jikan.moe)'
+            except RuntimeError as exc:
+                self.stderr.write(f'Jikan unreachable ({exc}). Using built-in fallback data.')
+                items = FALLBACK_ANIME
+                source = 'built-in fallback'
 
         for item in items:
             _create_anime(self, item)

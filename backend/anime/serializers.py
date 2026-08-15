@@ -18,9 +18,20 @@ class EpisodeSerializer(serializers.ModelSerializer):
 
 class EpisodeDetailSerializer(EpisodeSerializer):
     anime_title = serializers.CharField(source='anime.title', read_only=True)
+    anilist_id = serializers.IntegerField(source='anime.anilist_id', read_only=True)
 
     class Meta(EpisodeSerializer.Meta):
-        fields = ['id', 'anime', 'anime_title', 'number', 'title', 'video_url', 'thumbnail', 'duration']
+        fields = [
+            'id',
+            'anime',
+            'anime_title',
+            'anilist_id',
+            'number',
+            'title',
+            'video_url',
+            'thumbnail',
+            'duration',
+        ]
 
 
 class AnimeListSerializer(serializers.ModelSerializer):
@@ -36,6 +47,7 @@ class AnimeListSerializer(serializers.ModelSerializer):
         model = Anime
         fields = [
             'id',
+            'anilist_id',
             'title',
             'synopsis',
             'genres',
@@ -54,6 +66,7 @@ class AnimeDetailSerializer(serializers.ModelSerializer):
         model = Anime
         fields = [
             'id',
+            'anilist_id',
             'title',
             'synopsis',
             'genres',

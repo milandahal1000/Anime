@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import VideoPlayer from '../components/VideoPlayer'
 import { useAuth } from '../hooks/useAuth'
 import { usePageMeta } from '../hooks/usePageMeta'
+import { useStream } from '../hooks/useStream'
 import { authApi, contentApi } from '../services/api'
 
 export default function Watch() {
@@ -16,6 +17,14 @@ export default function Watch() {
   const [resumeSeconds, setResumeSeconds] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [useFallback, setUseFallback] = useState(false)
+
+  const { stream, status } = useStream({
+    title: episode?.anime_title,
+    episodeNumber: episode?.number,
+    anilistId: episode?.anilist_id,
+    enabled: !!episode && !useFallback,
+  })
 
   usePageMeta(
     episode ? `EP ${episode.number} - ${episode.anime_title}` : 'Watch',
@@ -78,6 +87,9 @@ export default function Watch() {
   const prev = index > 0 ? episodes[index - 1] : null
   const next = index >= 0 && index < episodes.length - 1 ? episodes[index + 1] : null
 
+  const activeStream = useFallback ? null : stream
+  const src = activeStream?.url || episode?.video_url
+
   if (isLoading) {
     return <div className="loader">Loading&hellip;</div>
   }
@@ -91,7 +103,7 @@ export default function Watch() {
         <VideoPlayer
           key={episode.id}
           videoRef={videoRef}
-          src={episode.video_url}
+          src={src}
           poster={episode.thumbnail}
           autoPlay
           startSeconds={resumeSeconds}
@@ -102,7 +114,22 @@ export default function Watch() {
           }}
           onPause={() => reportProgress()}
           onEnded={() => reportProgress(true)}
+          onFatalError={() => {
+            if (!useFallback) setUseFallback(true)
+          }}
         />
+        {status === 'resolving' && <span className="source-badge">Finding stream&hellip;</span>}
+        {status === 'ready' && !useFallback && (
+          <span className="source-badge">
+            {activeStream.provider} &middot; {activeStream.quality}
+          </span>
+        )}
+        {useFallback && <span className="source-badge source-badge-muted">Demo stream</span>}
+        {status === 'fallback' && !useFallback && (
+          <span className="source-badge source-badge-muted">
+            Stream blocked &mdash; playing demo
+          </span>
+        )}
       </div>
 
       <div className="player-actions">

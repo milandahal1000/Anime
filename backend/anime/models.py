@@ -14,6 +14,7 @@ class Genre(models.Model):
 
 
 class Anime(models.Model):
+    anilist_id = models.PositiveIntegerField(unique=True, null=True, blank=True)
     title = models.CharField(max_length=255)
     synopsis = models.TextField(blank=True)
     genres = models.ManyToManyField(Genre, related_name='animes')
